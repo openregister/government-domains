@@ -1,0 +1,18 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.fasterxml.jackson:jackson-dataformat-csv:0.5.0'
+    compile 'org.postgresql:postgresql:9.4-1200-jdbc41'
+    compile 'commons-codec:commons-codec:1.9'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.6'
+}
+
+

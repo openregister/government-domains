@@ -1,0 +1,3 @@
+rootProject.name = 'government-domains'
+
+include 'government-domains'
