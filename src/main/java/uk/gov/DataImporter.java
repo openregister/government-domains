@@ -13,6 +13,7 @@ import org.postgresql.util.PGobject;
 import java.io.*;
 import java.security.MessageDigest;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,13 +25,13 @@ public class DataImporter {
     public static void main(String[] args) throws IOException, SQLException {
         recreateTable();
 
-        loadEntries("domains_list_2011.csv");
+        loadEntries("domains_list_2011.csv", LocalDate.of(2011, 10, 21).atStartOfDay());
 
-        loadEntries("domains_list_2012.csv");
+        loadEntries("domains_list_2012.csv", LocalDate.of(2012, 10, 1).atStartOfDay());
 
-        loadEntries("domains_list_2013.csv");
+        loadEntries("domains_list_2013.csv", LocalDate.of(2013, 10, 1).atStartOfDay());
 
-        loadEntries("domains_list_2014.csv");
+        loadEntries("domains_list_2014.csv", LocalDate.of(2014, 10, 1).atStartOfDay());
 
         createFile("data/domains/domains.txt");
     }
@@ -46,6 +47,8 @@ public class DataImporter {
 
     private static void createFile(String filePath) throws IOException, SQLException {
         File file = new File(filePath);
+        //noinspection ResultOfMethodCallIgnored
+        file.createNewFile();
         FileWriter fw = new FileWriter(file.getAbsoluteFile());
         BufferedWriter bw = new BufferedWriter(fw);
         try (Connection connection = DriverManager.getConnection(url)) {
@@ -60,7 +63,7 @@ public class DataImporter {
         bw.close();
     }
 
-    protected static void loadEntries(String fileName) throws IOException, SQLException {
+    protected static void loadEntries(String fileName, LocalDateTime fileTime) throws IOException, SQLException {
         final Collection<Record> recordsFromDB = fetchCurrentRecordsFromDB();
 
         final List<Record> recordsFromFile = loadFile(fileName);
@@ -69,11 +72,11 @@ public class DataImporter {
                                 .map(Record::domainName)
                                 .collect(Collectors.toList())
                                 .contains(r.domainName())
-                ).filter( r->
-                        r.entry.get("end_date").getTextValue().isEmpty()
+                ).filter(r ->
+                                r.entry.get("end_date").getTextValue().isEmpty()
                 )
                 .collect(Collectors.toList());
-        insertDomains(domainsToBeRemovedFromDB, true);
+        insertDomains(domainsToBeRemovedFromDB, true, fileTime);
 
         final List<Record> recordsToBeInsertedOrUpdatedInDB = recordsFromFile.stream()
                 .filter(r -> !recordsFromDB.stream()
@@ -83,7 +86,7 @@ public class DataImporter {
                 )
                 .collect(Collectors.toList());
 
-        insertDomains(recordsToBeInsertedOrUpdatedInDB, false);
+        insertDomains(recordsToBeInsertedOrUpdatedInDB, false, fileTime);
     }
 
     protected static Collection<Record> fetchCurrentRecordsFromDB() throws SQLException, IOException {
@@ -109,11 +112,11 @@ public class DataImporter {
         return recordMap.values();
     }
 
-    private static void insertDomains(List<Record> records, boolean isDeleted) throws SQLException, IOException {
+    private static void insertDomains(List<Record> records, boolean isDeleted, LocalDateTime fileTime) throws SQLException, IOException {
         try (Connection connection = DriverManager.getConnection(url)) {
             try (PreparedStatement statement = connection.prepareStatement("INSERT INTO DOMAINS(ENTRY) VALUES(?)")) {
                 for (Record record : records) {
-                    statement.setObject(1, (isDeleted ? record.withValuedEndDate() : record).getPGObject());
+                    statement.setObject(1, (isDeleted ? record.withEndDate(fileTime) : record).getPGObject());
                     statement.executeUpdate();
                 }
             }
@@ -134,6 +137,7 @@ public class DataImporter {
             this.hash = shasum(entry.toString());
             this.entry = entry;
         }
+
         private PGobject createPGObject(String data) {
             PGobject pgo = new PGobject();
             pgo.setType("jsonb");
@@ -152,12 +156,12 @@ public class DataImporter {
         }
 
         public String domainName() {
-            return entry.get("domain").getTextValue();
+            return entry.get("government-domain").getTextValue();
         }
 
-        public Record withValuedEndDate() {
+        public Record withEndDate(LocalDateTime fileTime) {
             @SuppressWarnings("unchecked") Map<String, Object> map = objectMapper.convertValue(entry, Map.class);
-            map.put("end_date", LocalDateTime.now().toString());
+            map.put("end_date", fileTime.toString());
             JsonNode entryNode = objectMapper.convertValue(map, JsonNode.class);
             return new Record(entryNode);
         }
@@ -165,7 +169,7 @@ public class DataImporter {
 
     protected static List<Record> loadFile(String fileName) throws IOException, SQLException {
         CsvSchema.Builder builder = CsvSchema.builder().setColumnSeparator(',').setUseHeader(true);
-        builder.addColumn("domain");
+        builder.addColumn("government-domain");
         builder.addColumn("owner");
         CsvSchema csvSchema = builder.build();
 
