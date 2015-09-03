@@ -15,4 +15,7 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.6'
 }
 
-
+task(run, type: JavaExec) {
+    main = 'uk.gov.DataImporter'
+    classpath = sourceSets.main.runtimeClasspath
+}

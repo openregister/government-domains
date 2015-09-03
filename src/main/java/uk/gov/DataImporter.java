@@ -32,7 +32,7 @@ public class DataImporter {
 
         loadEntries("domains_list_2014.csv");
 
-        createFile("/Users/developer/projects/GDS/government-domains/domains.txt");
+        createFile("data/domains/domains.txt");
     }
 
     private static void recreateTable() throws SQLException {
