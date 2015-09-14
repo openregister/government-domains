@@ -73,7 +73,7 @@ public class DataImporter {
                                 .collect(Collectors.toList())
                                 .contains(r.domainName())
                 ).filter(r ->
-                                r.entry.get("end_date").getTextValue().isEmpty()
+                                r.entry.get("end-date").getTextValue().isEmpty()
                 )
                 .collect(Collectors.toList());
         insertDomains(domainsToBeRemovedFromDB, true, fileTime);
@@ -161,7 +161,7 @@ public class DataImporter {
 
         public Record withEndDate(LocalDateTime fileTime) {
             @SuppressWarnings("unchecked") Map<String, Object> map = objectMapper.convertValue(entry, Map.class);
-            map.put("end_date", fileTime.toString());
+            map.put("end-date", fileTime.toString());
             JsonNode entryNode = objectMapper.convertValue(map, JsonNode.class);
             return new Record(entryNode);
         }
@@ -188,7 +188,7 @@ public class DataImporter {
 
 
     protected static Record createRecord(Map<String, Object> entry) {
-        entry.put("end_date", "");
+        entry.put("end-date", "");
         JsonNode entryNode = objectMapper.convertValue(entry, JsonNode.class);
 
         return new Record(entryNode);
