@@ -39,7 +39,7 @@ public class DataImporter {
     private static void recreateTable() throws SQLException {
         try (Connection connection = DriverManager.getConnection(url)) {
             try (Statement statement = connection.createStatement()) {
-                statement.executeUpdate("DROP TABLE DOMAINS");
+                statement.executeUpdate("DROP TABLE IF EXISTS DOMAINS");
                 statement.executeUpdate("CREATE TABLE IF NOT EXISTS DOMAINS (ID SERIAL PRIMARY KEY, ENTRY JSONB)");
             }
         }
